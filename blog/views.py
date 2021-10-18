@@ -2,8 +2,9 @@ import datetime
 import random
 
 from django.http import HttpResponse, HttpResponseRedirect
-# Create your views here.
 from django.shortcuts import render
+from django.views.generic import ListView, CreateView, DetailView
+
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
@@ -20,22 +21,32 @@ def random_view(request):
     return HttpResponse(random_int)
 
 
-def create_blog(request):
-    if request.method == "POST":
-        data = request.POST
-        files = request.FILES
-        title = data["title"]
-        description = data["description"]
-        image = files["image"]
-        blog = Blog.objects.create(title=title, description=description, image=image)
-        return HttpResponse(f"Блог успешно добавлен!")
-    elif request.method == "GET":
-        return render(request, "blog_form.html")
+class CreateBlogView(CreateView):
+    model = Blog
+    template_name = "blog_form.html"
+    fields = [
+        "image",
+        "title",
+        "description",
+    ]
 
 
-def blog_view(request):
-    blogs = Blog.objects.all()
-    return render(request, "blog.html", context={"blogs": blogs})
+class BlogListView(ListView):
+    queryset = Blog.objects.all()
+    template_name = "blog.html"
+    context_object_name = "blogs"
+
+
+class BlogDetailView(DetailView):
+    queryset = Blog.objects.all()
+    template_name = "blog_detail.html"
+    context_object_name = "blog"
+    pk_url_kwarg = "id"
+
+    # ДЗ
+    def post(self, request, *args, **kwargs):
+        blog = self.get_object()
+        pass
 
 
 def detail_post(request, id):
@@ -54,16 +65,6 @@ def detail_post(request, id):
         return render(request, "blog_detail.html", context={"blog": blog, "comments": comments})
 
 
-def test_form(request):
-    if request.method == "POST":
-        data = request.POST
-        first_name = data["first_name"]
-        last_name = data["last_name"]
-        return HttpResponse(f"ваше имя {first_name} ваша фамилиия {last_name}")
-    elif request.method == "GET":
-        return render(request, "form.html")
-
-
 def profile_view(request):
     user = request.user
     return HttpResponse(f"username: {user.username}, password: {user.password}, name: {user.first_name}, surname: {user.last_name}")
@@ -74,7 +75,7 @@ def blog_change_view(request, id):
     if request.method == "POST":
         data = request.POST
         file = request.FILES
-        if data.get("description"):
+        if data.get("title"):
             blog.title = data["title"]
         if data.get("description"):
             blog.description = data["description"]
